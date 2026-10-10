@@ -1,0 +1,27 @@
+{
+  "config": "{\"version\":\"5.50\",\"themeCollection\":{\"baseTheme\":{\"name\":\"CY24SU02\",\"version\":\"5.50\",\"type\":2}},\"activeSectionIndex\":0,\"defaultDrillFilterOtherVisuals\":true}",
+  "layoutOptimization": 0,
+  "sections": [
+    {
+      "name": "ReportSection_Executive",
+      "displayName": "Executive KPI & Revenue",
+      "width": 1280,
+      "height": 720,
+      "visualContainers": []
+    },
+    {
+      "name": "ReportSection_Product",
+      "displayName": "Product & Caffeine Elasticity",
+      "width": 1280,
+      "height": 720,
+      "visualContainers": []
+    },
+    {
+      "name": "ReportSection_Store",
+      "displayName": "Store Format & Hourly Rush",
+      "width": 1280,
+      "height": 720,
+      "visualContainers": []
+    }
+  ]
+}

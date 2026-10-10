@@ -1,0 +1,213 @@
+{
+  "name": "Starbucks_Sales_Dashboard",
+  "compatibilityLevel": 1550,
+  "model": {
+    "culture": "en-US",
+    "dataAccessOptions": {
+      "legacyRedirects": true,
+      "returnErrorValuesAsNull": true
+    },
+    "defaultPowerBIDataSourceVersion": "powerBI_V3",
+    "tables": [
+      {
+        "name": "Fact_Transactions",
+        "columns": [
+          { "name": "Transaction_ID", "dataType": "string", "sourceColumn": "Transaction_ID" },
+          { "name": "Timestamp", "dataType": "dateTime", "sourceColumn": "Timestamp" },
+          { "name": "Date", "dataType": "string", "sourceColumn": "Date" },
+          { "name": "Hour", "dataType": "int64", "sourceColumn": "Hour" },
+          { "name": "Customer_ID", "dataType": "string", "sourceColumn": "Customer_ID" },
+          { "name": "Store_ID", "dataType": "string", "sourceColumn": "Store_ID" },
+          { "name": "Product_ID", "dataType": "string", "sourceColumn": "Product_ID" },
+          { "name": "Quantity", "dataType": "int64", "sourceColumn": "Quantity" },
+          { "name": "Unit_Price", "dataType": "double", "sourceColumn": "Unit_Price" },
+          { "name": "Subtotal", "dataType": "double", "sourceColumn": "Subtotal" },
+          { "name": "Discount_Amount", "dataType": "double", "sourceColumn": "Discount_Amount" },
+          { "name": "Total_Amount", "dataType": "double", "sourceColumn": "Total_Amount" },
+          { "name": "Total_Cost", "dataType": "double", "sourceColumn": "Total_Cost" },
+          { "name": "Gross_Profit", "dataType": "double", "sourceColumn": "Gross_Profit" },
+          { "name": "Payment_Method", "dataType": "string", "sourceColumn": "Payment_Method" },
+          { "name": "Order_Channel", "dataType": "string", "sourceColumn": "Order_Channel" },
+          { "name": "Is_Loyalty_Member", "dataType": "int64", "sourceColumn": "Is_Loyalty_Member" }
+        ],
+        "partitions": [
+          {
+            "name": "Fact_Transactions-Partition",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Csv.Document(File.Contents(\"C:\\\\Users\\\\Krisha Jariwala\\\\.gemini\\\\antigravity\\\\scratch\\\\data_analyst_portfolio\\\\02_starbucks_sales_product_analysis\\\\data\\\\starbucks_transactions.csv\"), [Delimiter=\",\", Columns=17, Encoding=65001, QuoteStyle=QuoteStyle.None]),",
+                "    #\"Promoted Headers\" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),",
+                "    #\"Changed Type\" = Table.TransformColumnTypes(#\"Promoted Headers\", {{\"Transaction_ID\", type text}, {\"Timestamp\", type datetime}, {\"Date\", type text}, {\"Hour\", Int64.Type}, {\"Customer_ID\", type text}, {\"Store_ID\", type text}, {\"Product_ID\", type text}, {\"Quantity\", Int64.Type}, {\"Unit_Price\", type number}, {\"Subtotal\", type number}, {\"Discount_Amount\", type number}, {\"Total_Amount\", type number}, {\"Total_Cost\", type number}, {\"Gross_Profit\", type number}, {\"Payment_Method\", type text}, {\"Order_Channel\", type text}, {\"Is_Loyalty_Member\", Int64.Type}})",
+                "in",
+                "    #\"Changed Type\""
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Total Revenue",
+            "expression": "SUM(Fact_Transactions[Total_Amount])",
+            "formatString": "$#,##0.00"
+          },
+          {
+            "name": "Total Cost",
+            "expression": "SUM(Fact_Transactions[Total_Cost])",
+            "formatString": "$#,##0.00"
+          },
+          {
+            "name": "Gross Profit",
+            "expression": "[Total Revenue] - [Total Cost]",
+            "formatString": "$#,##0.00"
+          },
+          {
+            "name": "Gross Margin %",
+            "expression": "DIVIDE([Gross Profit], [Total Revenue], 0)",
+            "formatString": "0.0%"
+          },
+          {
+            "name": "Total Orders",
+            "expression": "DISTINCTCOUNT(Fact_Transactions[Transaction_ID])",
+            "formatString": "#,##0"
+          },
+          {
+            "name": "Average Order Value",
+            "expression": "DIVIDE([Total Revenue], [Total Orders], 0)",
+            "formatString": "$#,##0.00"
+          },
+          {
+            "name": "Avg Caffeine per Drink",
+            "expression": "AVERAGEX(Fact_Transactions, RELATED(Dim_Product[Caffeine_mg]))",
+            "formatString": "#,##0 mg"
+          },
+          {
+            "name": "Food Attachment Rate %",
+            "expression": "VAR FoodOrders = CALCULATE(DISTINCTCOUNT(Fact_Transactions[Transaction_ID]), Dim_Product[Category] = \"Bakery & Food\") RETURN DIVIDE(FoodOrders, [Total Orders], 0)",
+            "formatString": "0.0%"
+          }
+        ]
+      },
+      {
+        "name": "Dim_Product",
+        "columns": [
+          { "name": "Product_ID", "dataType": "string", "sourceColumn": "Product_ID" },
+          { "name": "Category", "dataType": "string", "sourceColumn": "Category" },
+          { "name": "Product_Name", "dataType": "string", "sourceColumn": "Product_Name" },
+          { "name": "Size", "dataType": "string", "sourceColumn": "Size" },
+          { "name": "Milk_Type", "dataType": "string", "sourceColumn": "Milk_Type" },
+          { "name": "Calories", "dataType": "int64", "sourceColumn": "Calories" },
+          { "name": "Fat_g", "dataType": "double", "sourceColumn": "Fat_g" },
+          { "name": "Carb_g", "dataType": "int64", "sourceColumn": "Carb_g" },
+          { "name": "Protein_g", "dataType": "int64", "sourceColumn": "Protein_g" },
+          { "name": "Caffeine_mg", "dataType": "int64", "sourceColumn": "Caffeine_mg" },
+          { "name": "Unit_Price", "dataType": "double", "sourceColumn": "Unit_Price" },
+          { "name": "Unit_Cost", "dataType": "double", "sourceColumn": "Unit_Cost" },
+          { "name": "Gross_Margin", "dataType": "double", "sourceColumn": "Gross_Margin" },
+          { "name": "Gross_Margin_Pct", "dataType": "double", "sourceColumn": "Gross_Margin_Pct" }
+        ],
+        "partitions": [
+          {
+            "name": "Dim_Product-Partition",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Csv.Document(File.Contents(\"C:\\\\Users\\\\Krisha Jariwala\\\\.gemini\\\\antigravity\\\\scratch\\\\data_analyst_portfolio\\\\02_starbucks_sales_product_analysis\\\\data\\\\starbucks_products.csv\"), [Delimiter=\",\", Columns=14, Encoding=65001, QuoteStyle=QuoteStyle.None]),",
+                "    #\"Promoted Headers\" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),",
+                "    #\"Changed Type\" = Table.TransformColumnTypes(#\"Promoted Headers\", {{\"Product_ID\", type text}, {\"Category\", type text}, {\"Product_Name\", type text}, {\"Size\", type text}, {\"Milk_Type\", type text}, {\"Calories\", Int64.Type}, {\"Fat_g\", type number}, {\"Carb_g\", Int64.Type}, {\"Protein_g\", Int64.Type}, {\"Caffeine_mg\", Int64.Type}, {\"Unit_Price\", type number}, {\"Unit_Cost\", type number}, {\"Gross_Margin\", type number}, {\"Gross_Margin_Pct\", type number}})",
+                "in",
+                "    #\"Changed Type\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Dim_Store",
+        "columns": [
+          { "name": "Store_ID", "dataType": "string", "sourceColumn": "Store_ID" },
+          { "name": "Store_Name", "dataType": "string", "sourceColumn": "Store_Name" },
+          { "name": "City", "dataType": "string", "sourceColumn": "City" },
+          { "name": "State", "dataType": "string", "sourceColumn": "State" },
+          { "name": "Store_Type", "dataType": "string", "sourceColumn": "Store_Type" },
+          { "name": "Sq_Footage", "dataType": "int64", "sourceColumn": "Sq_Footage" },
+          { "name": "Region", "dataType": "string", "sourceColumn": "Region" }
+        ],
+        "partitions": [
+          {
+            "name": "Dim_Store-Partition",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Csv.Document(File.Contents(\"C:\\\\Users\\\\Krisha Jariwala\\\\.gemini\\\\antigravity\\\\scratch\\\\data_analyst_portfolio\\\\02_starbucks_sales_product_analysis\\\\data\\\\starbucks_stores.csv\"), [Delimiter=\",\", Columns=7, Encoding=65001, QuoteStyle=QuoteStyle.None]),",
+                "    #\"Promoted Headers\" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),",
+                "    #\"Changed Type\" = Table.TransformColumnTypes(#\"Promoted Headers\", {{\"Store_ID\", type text}, {\"Store_Name\", type text}, {\"City\", type text}, {\"State\", type text}, {\"Store_Type\", type text}, {\"Sq_Footage\", Int64.Type}, {\"Region\", type text}})",
+                "in",
+                "    #\"Changed Type\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Dim_Date",
+        "columns": [
+          { "name": "Date", "dataType": "string", "sourceColumn": "Date" },
+          { "name": "Year", "dataType": "int64", "sourceColumn": "Year" },
+          { "name": "Quarter", "dataType": "string", "sourceColumn": "Quarter" },
+          { "name": "Month_Name", "dataType": "string", "sourceColumn": "Month_Name" },
+          { "name": "Month_Number", "dataType": "int64", "sourceColumn": "Month_Number" },
+          { "name": "Day", "dataType": "int64", "sourceColumn": "Day" },
+          { "name": "Day_Of_Week", "dataType": "string", "sourceColumn": "Day_Of_Week" },
+          { "name": "Is_Weekend", "dataType": "int64", "sourceColumn": "Is_Weekend" }
+        ],
+        "partitions": [
+          {
+            "name": "Dim_Date-Partition",
+            "mode": "import",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = Csv.Document(File.Contents(\"C:\\\\Users\\\\Krisha Jariwala\\\\.gemini\\\\antigravity\\\\scratch\\\\data_analyst_portfolio\\\\02_starbucks_sales_product_analysis\\\\data\\\\dim_date.csv\"), [Delimiter=\",\", Columns=8, Encoding=65001, QuoteStyle=QuoteStyle.None]),",
+                "    #\"Promoted Headers\" = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),",
+                "    #\"Changed Type\" = Table.TransformColumnTypes(#\"Promoted Headers\", {{\"Date\", type text}, {\"Year\", Int64.Type}, {\"Quarter\", type text}, {\"Month_Name\", type text}, {\"Month_Number\", Int64.Type}, {\"Day\", Int64.Type}, {\"Day_Of_Week\", type text}, {\"Is_Weekend\", Int64.Type}})",
+                "in",
+                "    #\"Changed Type\""
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "Rel_Fact_Product",
+        "fromTable": "Fact_Transactions",
+        "fromColumn": "Product_ID",
+        "toTable": "Dim_Product",
+        "toColumn": "Product_ID"
+      },
+      {
+        "name": "Rel_Fact_Store",
+        "fromTable": "Fact_Transactions",
+        "fromColumn": "Store_ID",
+        "toTable": "Dim_Store",
+        "toColumn": "Store_ID"
+      },
+      {
+        "name": "Rel_Fact_Date",
+        "fromTable": "Fact_Transactions",
+        "fromColumn": "Date",
+        "toTable": "Dim_Date",
+        "toColumn": "Date"
+      }
+    ]
+  }
+}

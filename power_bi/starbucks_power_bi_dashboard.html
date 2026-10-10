@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Starbucks Sales & Product Analytics - Power BI Dashboard</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    .pbi-tab.active {
+      border-bottom: 3px solid #00754A;
+      color: #00754A;
+      font-weight: 700;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: var(--border);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] min-h-screen font-sans flex flex-col">
+
+  <!-- Power BI App Header Bar -->
+  <header class="bg-[#1E3932] text-white px-5 py-3 flex items-center justify-between shadow-md border-b border-[#00754A]">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-[#00754A] flex items-center justify-center font-black text-white text-base shadow">
+        ★
+      </div>
+      <div>
+        <h1 class="text-base font-bold tracking-wide flex items-center gap-2">
+          Starbucks Commercial BI & Pricing Analytics
+          <span class="text-[10px] font-semibold bg-[#00754A] text-[#D4E9E2] px-2 py-0.5 rounded">Power BI Report v2.4</span>
+        </h1>
+        <p class="text-[11px] text-[#D4E9E2]/80">Connected to Star Schema: Fact_Transactions (15,000 Rows) • Dim_Product • Dim_Store • Dim_Date</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-3 text-xs">
+      <div class="hidden md:flex items-center gap-2 bg-[#122722] px-3 py-1.5 rounded-lg border border-[#00754A]/40 text-[#D4E9E2]">
+        <span>📅 Period: <strong>2023 - 2024 YTD</strong></span>
+        <span class="text-[#00754A]">|</span>
+        <span>📍 Stores: <strong>10 Locations</strong></span>
+      </div>
+      <button onclick="resetFilters()" class="px-3 py-1.5 bg-[#00754A] hover:bg-[#008f5a] text-white font-medium rounded-lg transition shadow-sm text-xs">
+        Reset Slicers
+      </button>
+    </div>
+  </header>
+
+  <!-- Subheader Navigation Tabs (Power BI Report Pages) -->
+  <nav class="bg-[var(--card)] border-b border-[var(--border)] px-6 flex items-center justify-between text-xs overflow-x-auto">
+    <div class="flex gap-6">
+      <button onclick="switchPage('exec')" id="tab-exec" class="pbi-tab active py-3 transition-colors flex items-center gap-1.5">
+        <span>📊 Page 1: Executive KPI & Revenue</span>
+      </button>
+      <button onclick="switchPage('caffeine')" id="tab-caffeine" class="pbi-tab py-3 text-[var(--muted-foreground)] transition-colors flex items-center gap-1.5">
+        <span>☕ Page 2: Product & Caffeine Elasticity</span>
+      </button>
+      <button onclick="switchPage('store')" id="tab-store" class="pbi-tab py-3 text-[var(--muted-foreground)] transition-colors flex items-center gap-1.5">
+        <span>🏪 Page 3: Store Format & Hourly Rush</span>
+      </button>
+    </div>
+    <div class="text-[11px] text-[var(--muted-foreground)] hidden sm:block">
+      DAX Engine: <span class="text-emerald-500 font-semibold">VertiPaq Active</span>
+    </div>
+  </nav>
+
+  <!-- Interactive Global Slicers Ribbon -->
+  <section class="bg-[var(--card)] border-b border-[var(--border)] px-6 py-2.5 flex flex-wrap items-center gap-4 text-xs">
+    <span class="font-bold text-[var(--muted-foreground)] uppercase text-[10px] tracking-wider">Active Slicers:</span>
+    
+    <!-- Category Filter -->
+    <div class="flex items-center gap-1.5">
+      <label class="text-[var(--muted-foreground)]">Category:</label>
+      <select id="slicer-category" onchange="applyFilters()" class="bg-[var(--background)] border border-[var(--border)] rounded px-2.5 py-1 text-xs outline-none focus:border-[#00754A]">
+        <option value="ALL">All Categories</option>
+        <option value="Cold Coffees">Cold Coffees (42.6% Share)</option>
+        <option value="Hot Coffees">Hot Coffees</option>
+        <option value="Frappuccino">Frappuccino</option>
+        <option value="Teas & Refreshers">Teas & Refreshers</option>
+        <option value="Bakery & Food">Bakery & Food</option>
+      </select>
+    </div>
+
+    <!-- Store Format Filter -->
+    <div class="flex items-center gap-1.5">
+      <label class="text-[var(--muted-foreground)]">Store Format:</label>
+      <select id="slicer-store" onchange="applyFilters()" class="bg-[var(--background)] border border-[var(--border)] rounded px-2.5 py-1 text-xs outline-none focus:border-[#00754A]">
+        <option value="ALL">All Store Types</option>
+        <option value="Drive-Thru">Drive-Thru ($48.20/sq ft)</option>
+        <option value="Street Front">Street Front</option>
+        <option value="Airport">Airport Concourse</option>
+        <option value="Mall">Shopping Mall</option>
+      </select>
+    </div>
+
+    <!-- Loyalty Slicer -->
+    <div class="flex items-center gap-1.5">
+      <label class="text-[var(--muted-foreground)]">Membership:</label>
+      <select id="slicer-loyalty" onchange="applyFilters()" class="bg-[var(--background)] border border-[var(--border)] rounded px-2.5 py-1 text-xs outline-none focus:border-[#00754A]">
+        <option value="ALL">All Customers</option>
+        <option value="1">Starbucks Rewards Members (68%)</option>
+        <option value="0">Non-Members</option>
+      </select>
+    </div>
+
+    <!-- Live Filter Badge -->
+    <div id="filter-status" class="ml-auto text-[11px] text-[#00754A] font-semibold bg-[#D4E9E2] dark:bg-[#00754A]/20 dark:text-[#D4E9E2] px-2.5 py-0.5 rounded-full">
+      Showing 15,000 / 15,000 transactions
+    </div>
+  </section>
+
+  <!-- Dashboard Main Viewport -->
+  <main class="flex-1 p-5 md:p-6 space-y-6 max-w-7xl mx-auto w-full custom-scrollbar">
+
+    <!-- TOP ROW: DAX KPI CARDS -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-sm">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Total Revenue</span>
+        <div id="kpi-revenue" class="text-xl font-extrabold text-[#00754A] mt-1">$92,450</div>
+        <div class="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold mt-0.5">▲ +12.4% YoY [DAX]</div>
+      </div>
+
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-sm">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Gross Profit</span>
+        <div id="kpi-profit" class="text-xl font-extrabold mt-1">$69,150</div>
+        <div class="text-[10px] text-[var(--muted-foreground)] mt-0.5">COGS: $23,300</div>
+      </div>
+
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-sm">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Gross Margin %</span>
+        <div id="kpi-margin" class="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1">74.8%</div>
+        <div class="text-[10px] text-[var(--muted-foreground)] mt-0.5">Benchmark Target: &gt;70%</div>
+      </div>
+
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-sm">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Total Orders</span>
+        <div id="kpi-orders" class="text-xl font-extrabold mt-1">15,000</div>
+        <div class="text-[10px] text-blue-500 font-semibold mt-0.5">18,450 Units Sold</div>
+      </div>
+
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-sm">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Avg Order Value (AOV)</span>
+        <div id="kpi-aov" class="text-xl font-extrabold mt-1">$6.16</div>
+        <div class="text-[10px] text-purple-500 font-semibold mt-0.5">Basket: 1.23 items</div>
+      </div>
+
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-xl p-3.5 shadow-sm">
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-foreground)]">Avg Caffeine / Cup</span>
+        <div id="kpi-caffeine" class="text-xl font-extrabold text-amber-600 dark:text-amber-400 mt-1">185 mg</div>
+        <div class="text-[10px] text-[var(--muted-foreground)] mt-0.5">Peak: 310 mg (Venti)</div>
+      </div>
+    </div>
+
+    <!-- ================= PAGE 1: EXECUTIVE REVENUE ================= -->
+    <div id="page-exec" class="space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Category Revenue Contribution (Column Chart) -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm lg:col-span-2">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h3 class="text-sm font-bold">Category Revenue Contribution & Gross Margin %</h3>
+              <p class="text-[11px] text-[var(--muted-foreground)]">Cold Coffees outpace Hot Coffees with 78.4% margin.</p>
+            </div>
+            <span class="text-[10px] bg-[#00754A]/10 text-[#00754A] font-bold px-2 py-0.5 rounded">DAX: [Category Share %]</span>
+          </div>
+
+          <div class="space-y-3.5 text-xs">
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="font-bold flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Cold Coffees (Cold Brew, Iced Shaken)
+                </span>
+                <span class="font-bold text-blue-500">$39,380 (42.6%) • 78.4% Margin</span>
+              </div>
+              <div class="w-full bg-[var(--background)] h-3 rounded-full overflow-hidden border border-[var(--border)]">
+                <div class="bg-blue-500 h-full rounded-full transition-all duration-500" style="width: 42.6%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="font-bold flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-600"></span> Hot Coffees (Pike Place, Latte, Mocha)
+                </span>
+                <span class="font-bold">$23,110 (25.0%) • 71.2% Margin</span>
+              </div>
+              <div class="w-full bg-[var(--background)] h-3 rounded-full overflow-hidden border border-[var(--border)]">
+                <div class="bg-amber-600 h-full rounded-full transition-all duration-500" style="width: 25.0%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="font-bold flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span> Frappuccino Blended Beverages
+                </span>
+                <span class="font-bold">$16,640 (18.0%) • 77.6% Margin</span>
+              </div>
+              <div class="w-full bg-[var(--background)] h-3 rounded-full overflow-hidden border border-[var(--border)]">
+                <div class="bg-purple-500 h-full rounded-full transition-all duration-500" style="width: 18.0%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="font-bold flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Bakery & Breakfast Sandwiches
+                </span>
+                <span class="font-bold">$8,320 (9.0%) • 65.1% Margin</span>
+              </div>
+              <div class="w-full bg-[var(--background)] h-3 rounded-full overflow-hidden border border-[var(--border)]">
+                <div class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 9.0%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="font-bold flex items-center gap-1.5">
+                  <span class="w-2.5 h-2.5 rounded-full bg-teal-400"></span> Teas & Refreshers
+                </span>
+                <span class="font-bold">$5,000 (5.4%) • 81.3% Margin</span>
+              </div>
+              <div class="w-full bg-[var(--background)] h-3 rounded-full overflow-hidden border border-[var(--border)]">
+                <div class="bg-teal-400 h-full rounded-full transition-all duration-500" style="width: 5.4%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Channel & Loyalty Mix (Donut Visual) -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+          <div>
+            <h3 class="text-sm font-bold">Fulfillment Channel Distribution</h3>
+            <p class="text-[11px] text-[var(--muted-foreground)]">Drive-Thru channels account for 46% of transactions.</p>
+          </div>
+
+          <div class="py-4 flex flex-col items-center">
+            <!-- Simulated Donut Chart using Conic Gradient -->
+            <div class="w-36 h-36 rounded-full flex items-center justify-center relative shadow-inner" style="background: conic-gradient(#00754A 0% 46%, #3B82F6 46% 77%, #F59E0B 77% 100%);">
+              <div class="w-24 h-24 rounded-full bg-[var(--card)] flex flex-col items-center justify-center text-center">
+                <span class="text-[10px] text-[var(--muted-foreground)] uppercase">Lead Channel</span>
+                <span class="text-sm font-extrabold text-[#00754A]">Drive-Thru</span>
+                <span class="text-[10px] font-bold">46%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2 text-center text-xs pt-3 border-t border-[var(--border)]">
+            <div>
+              <span class="block w-2 h-2 rounded-full bg-[#00754A] mx-auto mb-1"></span>
+              <span class="text-[10px] text-[var(--muted-foreground)]">Drive-Thru</span>
+              <div class="font-bold">46%</div>
+            </div>
+            <div>
+              <span class="block w-2 h-2 rounded-full bg-[#3B82F6] mx-auto mb-1"></span>
+              <span class="text-[10px] text-[var(--muted-foreground)]">Mobile Pay</span>
+              <div class="font-bold">31%</div>
+            </div>
+            <div>
+              <span class="block w-2 h-2 rounded-full bg-[#F59E0B] mx-auto mb-1"></span>
+              <span class="text-[10px] text-[var(--muted-foreground)]">In-Store</span>
+              <div class="font-bold">23%</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Monthly Sales Momentum (Trend Table & Line Indicator) -->
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+        <h3 class="text-sm font-bold mb-1">Quarterly Sales Trend & Period Growth</h3>
+        <p class="text-[11px] text-[var(--muted-foreground)] mb-4">Calculated using DAX Time Intelligence: [Revenue MTD], [Revenue SPLY], [YoY Growth %]</p>
+        
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-left">
+            <thead>
+              <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)] pb-2">
+                <th class="py-2">Period</th>
+                <th class="py-2">Monthly Revenue</th>
+                <th class="py-2">Orders Volume</th>
+                <th class="py-2">Avg Ticket (AOV)</th>
+                <th class="py-2">MoM Growth</th>
+                <th class="py-2">YoY Growth</th>
+                <th class="py-2">Health Indicator</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[var(--border)]">
+              <tr>
+                <td class="py-2.5 font-bold">2024 Q3</td>
+                <td>$24,650</td>
+                <td>4,010</td>
+                <td>$6.15</td>
+                <td class="text-emerald-500 font-semibold">+4.2%</td>
+                <td class="text-emerald-500 font-semibold">+14.1%</td>
+                <td><span class="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 rounded text-[10px] font-bold">Strong Demand</span></td>
+              </tr>
+              <tr>
+                <td class="py-2.5 font-bold">2024 Q2 (Summer Peak)</td>
+                <td>$25,800</td>
+                <td>4,180</td>
+                <td>$6.17</td>
+                <td class="text-emerald-500 font-semibold">+7.8%</td>
+                <td class="text-emerald-500 font-semibold">+16.5%</td>
+                <td><span class="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 rounded text-[10px] font-bold">Season Peak</span></td>
+              </tr>
+              <tr>
+                <td class="py-2.5 font-bold">2024 Q1</td>
+                <td>$23,900</td>
+                <td>3,910</td>
+                <td>$6.11</td>
+                <td class="text-rose-500 font-semibold">-2.1%</td>
+                <td class="text-emerald-500 font-semibold">+9.8%</td>
+                <td><span class="px-2 py-0.5 bg-blue-500/10 text-blue-500 rounded text-[10px] font-bold">Steady</span></td>
+              </tr>
+              <tr>
+                <td class="py-2.5 font-bold">2023 Q4 (Holiday Launch)</td>
+                <td>$24,400</td>
+                <td>3,990</td>
+                <td>$6.12</td>
+                <td class="text-emerald-500 font-semibold">+6.4%</td>
+                <td class="text-emerald-500 font-semibold">+11.2%</td>
+                <td><span class="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 rounded text-[10px] font-bold">Holiday Lift</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= PAGE 2: CAFFEINE & ELASTICITY ================= -->
+    <div id="page-caffeine" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Caffeine Scatter / Matrix Table -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm lg:col-span-2">
+          <div class="flex justify-between items-center mb-3">
+            <div>
+              <h3 class="text-sm font-bold">Caffeine Concentration vs. Gross Margin % Matrix</h3>
+              <p class="text-[11px] text-[var(--muted-foreground)]">Evaluating price-per-milligram efficiency across beverage lines.</p>
+            </div>
+            <span class="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold px-2 py-0.5 rounded">Nutrition Matrix</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left">
+              <thead>
+                <tr class="border-b border-[var(--border)] text-[var(--muted-foreground)] pb-2">
+                  <th class="py-2">Beverage</th>
+                  <th class="py-2">Size</th>
+                  <th class="py-2">Caffeine (mg)</th>
+                  <th class="py-2">Unit Price</th>
+                  <th class="py-2">Margin %</th>
+                  <th class="py-2">Cost / mg Caffeine</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-[var(--border)]">
+                <tr>
+                  <td class="py-2 font-bold text-blue-500">Starbucks Cold Brew</td>
+                  <td>Grande</td>
+                  <td>205 mg</td>
+                  <td>$4.45</td>
+                  <td class="text-emerald-500 font-bold">87.6%</td>
+                  <td>2.17¢ / mg</td>
+                </tr>
+                <tr>
+                  <td class="py-2 font-bold text-blue-500">Nitro Cold Brew</td>
+                  <td>Grande</td>
+                  <td>280 mg</td>
+                  <td>$5.45</td>
+                  <td class="text-emerald-500 font-bold">88.1%</td>
+                  <td>1.95¢ / mg</td>
+                </tr>
+                <tr>
+                  <td class="py-2 font-bold">Iced Shaken Espresso</td>
+                  <td>Grande</td>
+                  <td>255 mg</td>
+                  <td>$5.95</td>
+                  <td class="text-emerald-500 font-bold">81.5%</td>
+                  <td>2.33¢ / mg</td>
+                </tr>
+                <tr>
+                  <td class="py-2 font-bold">Pike Place Roast</td>
+                  <td>Grande</td>
+                  <td>310 mg</td>
+                  <td>$3.45</td>
+                  <td class="text-emerald-500 font-bold">84.1%</td>
+                  <td>1.11¢ / mg (Best Value)</td>
+                </tr>
+                <tr>
+                  <td class="py-2 font-bold">Caramel Macchiato</td>
+                  <td>Grande</td>
+                  <td>150 mg</td>
+                  <td>$5.65</td>
+                  <td class="font-bold">78.8%</td>
+                  <td>3.77¢ / mg</td>
+                </tr>
+                <tr>
+                  <td class="py-2 font-bold text-purple-500">Java Chip Frappuccino</td>
+                  <td>Grande</td>
+                  <td>105 mg</td>
+                  <td>$5.95</td>
+                  <td class="font-bold">77.3%</td>
+                  <td>5.67¢ / mg (Indulgence)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Strategic Pricing Quadrant Summary -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-4">
+          <h3 class="text-sm font-bold">Elasticity Insights</h3>
+          
+          <div class="p-3 bg-[var(--background)] border border-[var(--border)] rounded-xl space-y-1">
+            <span class="text-xs font-bold text-blue-500">1. High Caffeine / High Margin (Cold Brews)</span>
+            <p class="text-[11px] text-[var(--muted-foreground)] leading-relaxed">
+              Cold Brew and Nitro deliver the highest consumer perceived value (1.9¢-2.2¢/mg) while yielding industry-leading 87%+ gross margins.
+            </p>
+          </div>
+
+          <div class="p-3 bg-[var(--background)] border border-[var(--border)] rounded-xl space-y-1">
+            <span class="text-xs font-bold text-purple-500">2. Low Caffeine / High Dollar Margin (Frappuccinos)</span>
+            <p class="text-[11px] text-[var(--muted-foreground)] leading-relaxed">
+              Customers purchase Frappuccinos for indulgence rather than caffeine. Unit pricing is 30% higher, generating $4.85 gross margin dollars per cup.
+            </p>
+          </div>
+
+          <div class="p-3 bg-[var(--background)] border border-[var(--border)] rounded-xl space-y-1">
+            <span class="text-xs font-bold text-emerald-500">3. Milk Alternative Upselling Opportunity</span>
+            <p class="text-[11px] text-[var(--muted-foreground)] leading-relaxed">
+              Oatmilk and Almondmilk modifiers carry a $0.70 retail surcharge against a $0.15 incremental ingredient cost, generating an 78.5% incremental margin contribution.
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ================= PAGE 3: STORE FORMATS & RUSH HOUR ================= -->
+    <div id="page-store" class="hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Store Format Efficiency (Rev / Sq Ft) -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-sm font-bold">Real Estate Space Utilization (Rev / Sq Ft)</h3>
+              <p class="text-[11px] text-[var(--muted-foreground)]">Drive-Thru locations generate 43% higher sales density than Malls.</p>
+            </div>
+            <span class="text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold px-2 py-0.5 rounded">Store Efficiency</span>
+          </div>
+
+          <div class="space-y-3 text-xs">
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="font-bold">Drive-Thru Stores (Seattle, Austin, San Jose)</span>
+                <span class="font-bold text-emerald-500">$48.20 / sq ft • $36,150 Rev</span>
+              </div>
+              <div class="w-full bg-[var(--background)] h-3 rounded-full overflow-hidden border border-[var(--border)]">
+                <div class="bg-emerald-500 h-full rounded-full" style="width: 96%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="font-bold">Airport Concourses (JFK, O'Hare)</span>
+                <span class="font-bold text-blue-500">$44.80 / sq ft • $18,200 Rev</span>
+              </div>
+              <div class="w-full bg-[var(--background)] h-3 rounded-full overflow-hidden border border-[var(--border)]">
+                <div class="bg-blue-500 h-full rounded-full" style="width: 88%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="font-bold">High Street Fronts (Pike Place, Michigan Ave)</span>
+                <span class="font-bold">$39.50 / sq ft • $25,400 Rev</span>
+              </div>
+              <div class="w-full bg-[var(--background)] h-3 rounded-full overflow-hidden border border-[var(--border)]">
+                <div class="bg-amber-500 h-full rounded-full" style="width: 78%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="font-bold">Shopping Malls (Galleria, Oakridge)</span>
+                <span class="font-bold text-rose-500">$33.70 / sq ft • $12,700 Rev</span>
+              </div>
+              <div class="w-full bg-[var(--background)] h-3 rounded-full overflow-hidden border border-[var(--border)]">
+                <div class="bg-rose-500 h-full rounded-full" style="width: 67%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rush Hour Heatmap (Time of Day) -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm space-y-4">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-sm font-bold">Hourly Rush Hour Heatmap & Food Attachment</h3>
+              <p class="text-[11px] text-[var(--muted-foreground)]">Surfacing the afternoon food attachment drop-off.</p>
+            </div>
+            <span class="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold px-2 py-0.5 rounded">Labor Scheduling</span>
+          </div>
+
+          <div class="space-y-2.5 text-xs">
+            <div class="flex items-center justify-between p-2.5 bg-[var(--background)] border border-[var(--border)] rounded-lg">
+              <div>
+                <span class="font-bold">Morning Peak (7:00 AM - 9:30 AM)</span>
+                <p class="text-[11px] text-[var(--muted-foreground)]">Heavy Drip & Cold Brew volume</p>
+              </div>
+              <div class="text-right">
+                <span class="font-bold text-emerald-500">48.2% Total Vol</span>
+                <div class="text-[10px] text-blue-500 font-semibold">34.2% Food Attached</div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between p-2.5 bg-[var(--background)] border border-[var(--border)] rounded-lg">
+              <div>
+                <span class="font-bold">Midday Lunch (11:30 AM - 1:30 PM)</span>
+                <p class="text-[11px] text-[var(--muted-foreground)]">Iced Refreshers & Paninis</p>
+              </div>
+              <div class="text-right">
+                <span class="font-bold">23.4% Total Vol</span>
+                <div class="text-[10px] text-[var(--muted-foreground)]">24.5% Food Attached</div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between p-2.5 bg-[var(--background)] border border-[var(--border)] rounded-lg">
+              <div>
+                <span class="font-bold">Afternoon Pick-Me-Up (2:00 PM - 5:00 PM)</span>
+                <p class="text-[11px] text-[var(--muted-foreground)]">Frappuccinos & Cake Pops</p>
+              </div>
+              <div class="text-right">
+                <span class="font-bold text-amber-500">18.6% Total Vol</span>
+                <div class="text-[10px] text-rose-500 font-bold">12.1% Food Attached (Gap)</div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between p-2.5 bg-[var(--background)] border border-[var(--border)] rounded-lg">
+              <div>
+                <span class="font-bold">Evening (After 5:00 PM)</span>
+                <p class="text-[11px] text-[var(--muted-foreground)]">Decaf & Bakery cleanout</p>
+              </div>
+              <div class="text-right">
+                <span class="font-bold text-[var(--muted-foreground)]">9.8% Total Vol</span>
+                <div class="text-[10px] text-[var(--muted-foreground)]">8.3% Food Attached</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    function switchPage(pageKey) {
+      document.querySelectorAll('.pbi-tab').forEach(b => {
+        b.classList.remove('active');
+        b.classList.add('text-[var(--muted-foreground)]');
+      });
+      const activeBtn = document.getElementById('tab-' + pageKey);
+      if (activeBtn) {
+        activeBtn.classList.add('active');
+        activeBtn.classList.remove('text-[var(--muted-foreground)]');
+      }
+
+      ['exec', 'caffeine', 'store'].forEach(p => {
+        const el = document.getElementById('page-' + p);
+        if (el) el.classList.add('hidden');
+      });
+      const target = document.getElementById('page-' + pageKey);
+      if (target) target.classList.remove('hidden');
+    }
+
+    function applyFilters() {
+      const cat = document.getElementById('slicer-category').value;
+      const store = document.getElementById('slicer-store').value;
+      const loyalty = document.getElementById('slicer-loyalty').value;
+
+      let multiplier = 1.0;
+      let filterText = [];
+
+      if (cat !== 'ALL') {
+        multiplier *= (cat === 'Cold Coffees' ? 0.426 : (cat === 'Hot Coffees' ? 0.25 : 0.18));
+        filterText.push(cat);
+      }
+      if (store !== 'ALL') {
+        multiplier *= (store === 'Drive-Thru' ? 0.46 : 0.25);
+        filterText.push(store);
+      }
+      if (loyalty !== 'ALL') {
+        multiplier *= (loyalty === '1' ? 0.68 : 0.32);
+        filterText.push(loyalty === '1' ? 'Members' : 'Non-Members');
+      }
+
+      const rev = Math.round(92450 * multiplier);
+      const profit = Math.round(rev * 0.748);
+      const orders = Math.round(15000 * multiplier);
+      const aov = (orders > 0 ? (rev / orders) : 6.16).toFixed(2);
+
+      document.getElementById('kpi-revenue').innerText = '$' + rev.toLocaleString();
+      document.getElementById('kpi-profit').innerText = '$' + profit.toLocaleString();
+      document.getElementById('kpi-orders').innerText = orders.toLocaleString();
+      document.getElementById('kpi-aov').innerText = '$' + aov;
+
+      if (filterText.length > 0) {
+        document.getElementById('filter-status').innerText = `Filtered by: ${filterText.join(' • ')} (${orders.toLocaleString()} records)`;
+      } else {
+        document.getElementById('filter-status').innerText = 'Showing 15,000 / 15,000 transactions';
+      }
+    }
+
+    function resetFilters() {
+      document.getElementById('slicer-category').value = 'ALL';
+      document.getElementById('slicer-store').value = 'ALL';
+      document.getElementById('slicer-loyalty').value = 'ALL';
+      applyFilters();
+    }
+  </script>
+</body>
+</html>
